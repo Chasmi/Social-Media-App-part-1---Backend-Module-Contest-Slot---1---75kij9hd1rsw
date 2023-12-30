@@ -1,52 +1,74 @@
-const users = [
-  {
-    username: 'johndoe',
-    email: 'johndoe@example.com',
-    password: 'password1',
-    profilePicture: 'https://example.com/profile-picture.jpg',
-    bio: 'Web developer, coffee addict, and fitness enthusiast',
-    location: 'San Francisco, CA',
-    website: 'https://johndoe.com',
-    socialMediaHandles: { twitter: 'johndoe', linkedin: 'johndoe' },
-    interests: ['web development', 'fitness', 'coffee'],
-    privacySettings: {
-      isProfilePublic: true,
-    },
-  },
-  {
-    username: 'janedoe',
-    email: 'janedoe@example.com',
-    password: 'password2',
-    profilePicture: 'https://example.com/profile-picture.jpg',
-    bio: 'Graphic designer and cat lover',
-    location: 'New York, NY',
-    website: 'https://janedoe.com',
-    socialMediaHandles: {
-      twitter: 'janedoe',
-      linkedin: '',
-    },
-    interests: ['graphic design', 'cats'],
-    privacySettings: {
-      isProfilePublic: false,
-    },
-  },
-  {
-    username: 'bobsmith',
-    email: 'bobsmith@example.com',
-    password: 'password3',
-    profilePicture: 'https://example.com/default-profile-picture.jpg',
-    bio: '',
-    location: '',
-    website: '',
-    socialMediaHandles: {
-      twitter: '',
-      linkedin: 'bobsmith',
-    },
-    interests: ['music', 'movies'],
-    privacySettings: {
-      isProfilePublic: true,
-    },
-  },
-];
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-module.exports = users;
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      validate(value) {
+        if (value.length < 8) {
+          throw new Error('Password should be at least 8 characters long');
+        }
+      },
+    },
+    profilePicture: {
+      type: String,
+      default: 'https://example.com/default-profile-picture.jpg',
+    },
+    bio: {
+      type: String,
+      default: '',
+    },
+    location: {
+      type: String,
+      default: '',
+    },
+    website: {
+      type: String,
+      default: '',
+    },
+    socialMediaHandles: {
+      twitter: {
+        type: String,
+        default: '',
+      },
+      linkedin: {
+        type: String,
+        default: '',
+      },
+    },
+    interests: [
+      {
+        type: String,
+      },
+    ],
+    privacySettings: {
+      isProfilePublic: {
+        type: Boolean,
+        default: true,
+      },
+    },
+  },
+  { timestamps: true }
+);
+
+userSchema.pre('save', async function (next) {
+  const user = this;
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(user.password, salt);
+  user.password = hashedPassword;
+  next();
+});
+
+module.exports = mongoose.model('User', userSchema);
